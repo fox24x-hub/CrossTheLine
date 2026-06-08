@@ -45,10 +45,10 @@ if ADMIN_CHAT_ID is not None:
 
 # ---------- States ----------
 (EXPERIENCE, FREQUENCY, MILEAGE, GOAL, SURFACE, WINTER,
- PROBLEMS, FLATFOOT, INSOLES, WIDTH,
+ PROBLEMS, FLATFOOT, INSOLES, WIDTH, WIDTH_MEASURE,
  PREV_SHOES, PREV_FEEDBACK,
  SOFTNESS, WEIGHT_MATTERS, BUDGET,
- CLIENT_NAME, PHONE) = range(17)
+ CLIENT_NAME, PHONE) = range(18)
 
 PROBLEMS_DONE = "problems_done"
 
@@ -333,6 +333,21 @@ async def width(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     }
     context.user_data["width"] = w_map[q.data]
 
+    if q.data == "w_unknown":
+        await q.edit_message_text(
+            "Не беда — замерим! Вот как это сделать дома:\n\n"
+            "1️⃣ Встань на лист бумаги А4 босиком, перенеси вес на ногу\n"
+            "2️⃣ Обведи стопу карандашом — держи его вертикально\n"
+            "3️⃣ Измерь ширину в самом широком месте (основание пальцев)\n"
+            "4️⃣ Повтори для второй ноги, берём большее значение\n\n"
+            "⏰ Лучше мерить вечером — стопа чуть больше после дня на ногах\n\n"
+            "Напиши результат (например: 97 мм) — или пропусти, разберёмся на встрече.",
+            reply_markup=kb([
+                [("Пропустить →", "width_skip")],
+            ])
+        )
+        return WIDTH_MEASURE
+
     if context.user_data.get("is_beginner"):
         context.user_data["prev_shoes"] = "—"
         context.user_data["prev_feedback"] = "—"
@@ -347,6 +362,55 @@ async def width(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     else:
         await q.edit_message_text(
             "В каких кроссовках бегал раньше?\n\n"
+            "Напиши марку и модель если помнишь, или просто опиши."
+        )
+        return PREV_SHOES
+
+
+async def width_measure(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    """Обрабатывает ответ после инструкции по замеру ширины стопы"""
+    # Текстовый ввод (число мм)
+    if update.message:
+        context.user_data["width"] = f"~{update.message.text.strip()} (самозамер)"
+        reply = update.message.reply_text
+        is_beginner = context.user_data.get("is_beginner")
+        if is_beginner:
+            context.user_data["prev_shoes"] = "—"
+            context.user_data["prev_feedback"] = "—"
+            await reply(
+                "Отлично, записал! Есть предпочтения по ощущению подошвы?",
+                reply_markup=kb([
+                    [("Помягче", "soft_soft"), ("Поупруже", "soft_firm")],
+                    [("Без разницы / не знаю", "soft_unknown")],
+                ])
+            )
+            return SOFTNESS
+        else:
+            await reply(
+                "Записал! В каких кроссовках бегал раньше?\n\n"
+                "Напиши марку и модель если помнишь, или просто опиши."
+            )
+            return PREV_SHOES
+
+    # Кнопка «Пропустить»
+    q = update.callback_query
+    await q.answer()
+    is_beginner = context.user_data.get("is_beginner")
+    if is_beginner:
+        context.user_data["prev_shoes"] = "—"
+        context.user_data["prev_feedback"] = "—"
+        await q.edit_message_text(
+            "Окей, разберёмся на встрече. Есть предпочтения по ощущению подошвы?",
+            reply_markup=kb([
+                [("Помягче", "soft_soft"), ("Поупруже", "soft_firm")],
+                [("Без разницы / не знаю", "soft_unknown")],
+            ])
+        )
+        return SOFTNESS
+    else:
+        await q.edit_message_text(
+            "Окей, разберёмся на встрече.\n\n"
+            "В каких кроссовках бегал раньше?\n"
             "Напиши марку и модель если помнишь, или просто опиши."
         )
         return PREV_SHOES
@@ -527,9 +591,9 @@ async def measure_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Я помогу собрать данные для подбора беговых кроссовок.\n"
+        "Я помогу подготовиться к подбору беговых кроссовок.\n\n"
         "Команды:\n"
-        "/start — начать опрос\n"
+        "/start — начать опросник\n"
         "/measure — как замерить стопу дома\n"
         "/cancel — отменить текущий опрос\n"
         "/help — показать это сообщение"
@@ -554,6 +618,10 @@ def main():
             FLATFOOT:       [CallbackQueryHandler(flatfoot)],
             INSOLES:        [CallbackQueryHandler(insoles)],
             WIDTH:          [CallbackQueryHandler(width)],
+            WIDTH_MEASURE:  [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, width_measure),
+                CallbackQueryHandler(width_measure, pattern="^width_skip$"),
+            ],
             PREV_SHOES:     [MessageHandler(filters.TEXT & ~filters.COMMAND, prev_shoes)],
             PREV_FEEDBACK:  [MessageHandler(filters.TEXT & ~filters.COMMAND, prev_feedback)],
             SOFTNESS:       [CallbackQueryHandler(softness)],
