@@ -1,5 +1,5 @@
-__pycache__/
-*.py[cod]
 .env
-.vscode/
-.venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store

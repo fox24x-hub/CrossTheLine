@@ -32,7 +32,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise RuntimeError("Переменная окружения BOT_TOKEN не задана")
 ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")
 if ADMIN_CHAT_ID is not None:
     try:
@@ -482,10 +484,10 @@ async def phone(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     else:
         await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=summary)
         await update.message.reply_text(
-        f"Готово, {d.get('client_name', '')}! Анкета отправлена.\n\n"
-        "Свяжусь с тобой в ближайшее время — договоримся о встрече. "
-        "Консультация: 30 минут, 1 500 ₽. Уйдёшь с чёткими вариантами 👟"
-    )
+            f"Готово, {d.get('client_name', '')}! Анкета отправлена.\n\n"
+            "Свяжусь с тобой в ближайшее время — договоримся о встрече. "
+            "Консультация: 30 минут, 1 500 ₽. Уйдёшь с чёткими вариантами 👟"
+        )
     return ConversationHandler.END
 
 
