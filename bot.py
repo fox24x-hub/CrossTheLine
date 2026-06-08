@@ -410,8 +410,8 @@ async def weight_matters(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     await q.edit_message_text(
         "Бюджет на кроссовки?",
         reply_markup=kb([
-            [("До 8 000 ₽", "bgt_8"), ("8 000 – 12 000 ₽", "bgt_12")],
-            [("Выше 12 000 ₽", "bgt_high"), ("Ещё не думал", "bgt_open")],
+            [("До 10 000 ₽", "bgt_10"), ("10 000 – 15 000 ₽", "bgt_15")],
+            [("Выше 15 000 ₽", "bgt_high"), ("Ещё не думал", "bgt_open")],
         ])
     )
     return BUDGET
@@ -422,9 +422,9 @@ async def budget(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await q.answer()
 
     bgt_map = {
-        "bgt_8":    "До 8 000 ₽",
-        "bgt_12":   "8 000 – 12 000 ₽",
-        "bgt_high": "Выше 12 000 ₽",
+        "bgt_10":    "До 10 000 ₽",
+        "bgt_15":   "10 000 – 15 000 ₽",
+        "bgt_high": "Выше 15 000 ₽",
         "bgt_open": "Ещё не думал",
     }
     context.user_data["budget"] = bgt_map[q.data]
@@ -498,11 +498,39 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 
+async def measure_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(
+        "📏 Как замерить стопу дома\n\n"
+        "Тебе понадобится: лист бумаги А4, карандаш, линейка.\n\n"
+        "1️⃣ Положи лист на твёрдый пол\n"
+        "Встань на него босиком. Перенеси вес на ногу — стопа должна быть нагружена, "
+        "как при беге.\n\n"
+        "2️⃣ Обведи стопу карандашом\n"
+        "Держи карандаш строго вертикально, веди вплотную к коже. "
+        "Удобнее если кто-то поможет.\n\n"
+        "3️⃣ Измерь длину\n"
+        "От самой выступающей точки пятки до кончика самого длинного пальца. "
+        "Это твой размер стопы в мм.\n\n"
+        "4️⃣ Измерь ширину\n"
+        "В самом широком месте — обычно это зона плюсны (основание пальцев).\n\n"
+        "5️⃣ Повтори для второй ноги\n"
+        "Стопы у большинства людей немного разные. "
+        "Берём большее значение из двух.\n\n"
+        "⏰ Лучше мерить вечером — после дня на ногах стопа чуть больше, "
+        "это ближе к реальному размеру при беге.\n\n"
+        "Пришли мне результаты:\n"
+        "Длина: ___ мм\n"
+        "Ширина: ___ мм\n\n"
+        "Или приходи с этими данными на консультацию 👟"
+    )
+
+
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "Я помогу собрать данные для подбора беговых кроссовок.\n"
         "Команды:\n"
         "/start — начать опрос\n"
+        "/measure — как замерить стопу дома\n"
         "/cancel — отменить текущий опрос\n"
         "/help — показать это сообщение"
     )
@@ -539,6 +567,7 @@ def main():
     )
 
     app.add_handler(conv)
+    app.add_handler(CommandHandler("measure", measure_command))
     app.add_handler(CommandHandler("help", help_command))
     logger.info("Бот запущен")
     app.run_polling()
